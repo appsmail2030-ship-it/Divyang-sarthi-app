@@ -1,0 +1,6 @@
+{
+  "name": "Pink Line Alert System",
+  "description": "Delhi Metro Pink Line passenger assistance alert and station-to-station coordination system.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

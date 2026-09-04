@@ -170,6 +170,10 @@ fun PinkLineApp(viewModel: PinkLineViewModel) {
                         metrics = metrics,
                         activeRequests = activeRequests,
                         isAdmin = isAdminLoggedIn,
+                        stations = stations,
+                        onSwitchStation = { newStn ->
+                            viewModel.switchStation(newStn)
+                        },
                         onCategorySelected = { passengerType ->
                             navController.navigate("create_request/${passengerType.name}")
                         },
@@ -220,6 +224,19 @@ fun PinkLineApp(viewModel: PinkLineViewModel) {
                                 snackbarHostState.showSnackbar("Request ${createdReq.requestId} transmitted to ${createdReq.destinationStation} Station.")
                             }
                             navController.navigate("active_requests") {
+                                popUpTo("home")
+                            }
+                        },
+                        onSwitchToDestinationAndAcknowledge = { req ->
+                            viewModel.switchStation(req.destinationStation)
+                            viewModel.selectRequest(req)
+                            navController.navigate("request_details/${req.requestId}") {
+                                popUpTo("home")
+                            }
+                        },
+                        onSimulateAlertNow = { req ->
+                            viewModel.triggerIncomingAlert(req)
+                            navController.navigate("home") {
                                 popUpTo("home")
                             }
                         }

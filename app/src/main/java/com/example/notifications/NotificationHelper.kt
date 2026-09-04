@@ -85,7 +85,11 @@ class NotificationHelper(private val context: Context) {
             .setVibrate(longArrayOf(0, 500, 200, 500, 200, 800))
             .build()
 
-        notificationManager.notify(request.requestId.hashCode(), notification)
+        try {
+            notificationManager.notify(request.requestId.hashCode(), notification)
+        } catch (e: Exception) {
+            // Guard against SecurityException when notification permission is pending or denied
+        }
     }
 
     fun cancelNotification(requestId: String) {

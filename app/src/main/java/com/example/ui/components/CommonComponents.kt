@@ -42,9 +42,22 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.window.Dialog
 import com.example.model.AssistanceStatus
 import com.example.model.NetworkStatus
 import com.example.model.PassengerType
+import com.example.model.Station
 import com.example.ui.theme.PinkLineAccent
 import com.example.ui.theme.PinkLinePrimary
 import com.example.ui.theme.PinkLinePrimaryDark
@@ -147,8 +160,12 @@ fun StationHeaderStrip(
     stationName: String,
     networkStatus: NetworkStatus,
     isAdmin: Boolean = false,
+    stations: List<Station> = emptyList(),
+    onSwitchStation: ((String) -> Unit)? = null,
     onLogout: () -> Unit
 ) {
+    var showSwitchDialog by remember { mutableStateOf(false) }
+
     Surface(
         color = PinkLinePrimaryDark,
         shadowElevation = 4.dp,
@@ -157,14 +174,22 @@ fun StationHeaderStrip(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp)
+                .padding(horizontal = 16.dp, vertical = 10.dp)
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .weight(1f)
+                        .then(
+                            if (onSwitchStation != null) Modifier.clickable { showSwitchDialog = true }
+                            else Modifier
+                        )
+                ) {
                     Box(
                         modifier = Modifier
                             .size(36.dp)
@@ -181,24 +206,45 @@ fun StationHeaderStrip(
                     Spacer(modifier = Modifier.width(10.dp))
                     Column {
                         Text(
-                            text = "DELHI METRO PINK LINE",
-                            color = Color.White.copy(alpha = 0.8f),
-                            fontSize = 11.sp,
+                            text = "DMRC DIVYA • PINK LINE",
+                            color = Color.White.copy(alpha = 0.85f),
+                            fontSize = 10.sp,
                             fontWeight = FontWeight.SemiBold,
                             letterSpacing = 1.sp
                         )
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                text = "Logged in as: ",
-                                color = Color.White.copy(alpha = 0.9f),
-                                fontSize = 14.sp
-                            )
-                            Text(
                                 text = stationName.uppercase(),
                                 color = Color.White,
-                                fontSize = 15.sp,
+                                fontSize = 14.sp,
                                 fontWeight = FontWeight.ExtraBold
                             )
+                            if (onSwitchStation != null) {
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Surface(
+                                    color = Color.White.copy(alpha = 0.25f),
+                                    shape = RoundedCornerShape(4.dp)
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.SwapHoriz,
+                                            contentDescription = "Switch Station",
+                                            tint = Color.White,
+                                            modifier = Modifier.size(12.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(3.dp))
+                                        Text(
+                                            text = "SWITCH",
+                                            color = Color.White,
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+                            }
                             if (isAdmin) {
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Surface(
@@ -232,6 +278,126 @@ fun StationHeaderStrip(
                             contentDescription = "Logout",
                             tint = Color.White
                         )
+                    }
+                }
+            }
+        }
+    }
+
+    if (showSwitchDialog && onSwitchStation != null) {
+        var query by remember { mutableStateOf("") }
+        val filtered = remember(stations, query) {
+            if (query.isBlank()) stations
+            else stations.filter {
+                it.name.contains(query, ignoreCase = true) || it.code.contains(query, ignoreCase = true)
+            }
+        }
+
+        Dialog(onDismissRequest = { showSwitchDialog = false }) {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(520.dp)
+                    .border(1.dp, PinkLinePrimary.copy(alpha = 0.4f), RoundedCornerShape(16.dp))
+                    .testTag("quick_station_switch_dialog")
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                text = "Quick Switch Active Station",
+                                color = Color.White,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "Current: $stationName",
+                                color = Color.LightGray,
+                                fontSize = 11.sp
+                            )
+                        }
+                        IconButton(onClick = { showSwitchDialog = false }) {
+                            Icon(Icons.Default.Close, contentDescription = "Close", tint = Color.White)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    OutlinedTextField(
+                        value = query,
+                        onValueChange = { query = it },
+                        placeholder = { Text("Search 38 Pink Line Stations...", color = Color.Gray, fontSize = 13.sp) },
+                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color.Gray) },
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White,
+                            focusedBorderColor = PinkLinePrimary,
+                            unfocusedBorderColor = Color.Gray
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    LazyColumn(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        items(filtered, key = { it.code }) { stn ->
+                            val isSelected = stn.name.equals(stationName, ignoreCase = true)
+                            Surface(
+                                color = if (isSelected) PinkLinePrimary.copy(alpha = 0.35f) else Color(0xFF334155),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .border(
+                                        width = if (isSelected) 1.5.dp else 0.5.dp,
+                                        color = if (isSelected) PinkLinePrimary else Color.Transparent,
+                                        shape = RoundedCornerShape(8.dp)
+                                    )
+                                    .clickable {
+                                        onSwitchStation(stn.name)
+                                        showSwitchDialog = false
+                                    }
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column {
+                                        Text(
+                                            text = stn.name,
+                                            color = Color.White,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                            fontSize = 13.sp
+                                        )
+                                        Text(
+                                            text = "Code: ${stn.code} • Stn #${stn.sequenceNumber}",
+                                            color = Color.LightGray,
+                                            fontSize = 10.sp
+                                        )
+                                    }
+                                    if (isSelected) {
+                                        Text(
+                                            text = "ACTIVE",
+                                            color = Color(0xFF4ADE80),
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }

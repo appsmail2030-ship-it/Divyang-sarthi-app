@@ -22,6 +22,6 @@ dependencyResolutionManagement {
   }
 }
 
-rootProject.name = "Pink Line Alert System"
+rootProject.name = "DMRC Divya"
 
 include(":app")

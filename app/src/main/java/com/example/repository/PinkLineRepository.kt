@@ -30,6 +30,7 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlin.math.abs
@@ -265,14 +266,24 @@ class PinkLineRepository(private val context: Context) {
         var twoStationTriggered = req.twoStationAlertTriggered
         var arrivalTriggered = req.arrivalAlertTriggered
 
-        if (newRemaining == 2 && !twoStationTriggered) {
+        if (newRemaining in 1..2 && !twoStationTriggered) {
             newStatus = AssistanceStatus.TWO_STATION_REMINDER
             twoStationTriggered = true
-            _alertEvents.emit(AlertEvent.TwoStationBeforeAlert(req.copy(stationsRemaining = 2)))
+            val alertReq = req.copy(
+                stationsRemaining = newRemaining,
+                status = newStatus,
+                twoStationAlertTriggered = true
+            )
+            _alertEvents.emit(AlertEvent.TwoStationBeforeAlert(alertReq))
         } else if (newRemaining == 0 && !arrivalTriggered) {
             newStatus = AssistanceStatus.ARRIVING
             arrivalTriggered = true
-            _alertEvents.emit(AlertEvent.FinalArrivalAlert(req.copy(stationsRemaining = 0)))
+            val alertReq = req.copy(
+                stationsRemaining = 0,
+                status = newStatus,
+                arrivalAlertTriggered = true
+            )
+            _alertEvents.emit(AlertEvent.FinalArrivalAlert(alertReq))
         }
 
         val updated = req.copy(
@@ -287,12 +298,18 @@ class PinkLineRepository(private val context: Context) {
     private fun startJourneyProgressionMonitor() {
         coroutineScope.launch {
             while (true) {
-                delay(12_000L) // check active acknowledged requests periodically
+                delay(18_000L) // Progress active journeys every 18 seconds for demo simulation
                 try {
-                    val activeEntities = requestDao.getPendingSyncRequests() // warm up
-                    val allList = requestDao.getRequestById("sample") // dummy check
+                    val activeList = requestDao.getActiveRequests().first()
+                    val enRouteRequests = activeList.filter {
+                        it.status == AssistanceStatus.ACKNOWLEDGED.name ||
+                                it.status == AssistanceStatus.TWO_STATION_REMINDER.name
+                    }
+                    for (reqEntity in enRouteRequests) {
+                        advanceTrainProgress(reqEntity.requestId)
+                    }
                 } catch (e: Exception) {
-                    // ignore
+                    Log.e("PinkLineRepo", "Progression monitor error: ${e.message}")
                 }
             }
         }

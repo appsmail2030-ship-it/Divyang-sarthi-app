@@ -46,6 +46,7 @@ import com.example.model.AssistanceRequest
 import com.example.model.AssistanceStatus
 import com.example.model.NetworkStatus
 import com.example.model.PassengerType
+import com.example.model.Station
 import com.example.ui.components.MetricSummaryCard
 import com.example.ui.components.PassengerCategoryButton
 import com.example.ui.components.StationHeaderStrip
@@ -65,6 +66,8 @@ fun HomeScreen(
     metrics: DashboardMetrics,
     activeRequests: List<AssistanceRequest>,
     isAdmin: Boolean,
+    stations: List<Station> = emptyList(),
+    onSwitchStation: ((String) -> Unit)? = null,
     onCategorySelected: (PassengerType) -> Unit,
     onNavigateToActiveRequests: () -> Unit,
     onNavigateToHistory: () -> Unit,
@@ -92,6 +95,8 @@ fun HomeScreen(
             stationName = stationName,
             networkStatus = networkStatus,
             isAdmin = isAdmin,
+            stations = stations,
+            onSwitchStation = onSwitchStation,
             onLogout = onLogout
         )
 

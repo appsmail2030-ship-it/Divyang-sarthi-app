@@ -124,22 +124,22 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(14.dp))
 
             Text(
-                text = "DELHI METRO RAIL",
+                text = "DELHI METRO RAIL CORPORATION",
                 color = PinkLineAccent,
-                fontSize = 13.sp,
+                fontSize = 12.sp,
                 fontWeight = FontWeight.Black,
                 letterSpacing = 2.sp
             )
 
             Text(
-                text = "Pink Line Passenger Assistance",
+                text = "DMRC Divya",
                 color = Color.White,
-                fontSize = 20.sp,
+                fontSize = 24.sp,
                 fontWeight = FontWeight.ExtraBold
             )
 
             Text(
-                text = "Station Operational Coordination Terminal",
+                text = "Pink Line Accessible Passenger Assistance System",
                 color = Color(0xFF94A3B8),
                 fontSize = 12.sp
             )

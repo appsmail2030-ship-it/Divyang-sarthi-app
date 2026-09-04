@@ -26,12 +26,15 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DirectionsTransit
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -41,6 +44,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
@@ -93,6 +97,8 @@ fun CreateRequestScreen(
         onSuccess: (AssistanceRequest) -> Unit
     ) -> Unit,
     onRequestCreated: (AssistanceRequest) -> Unit,
+    onSwitchToDestinationAndAcknowledge: ((AssistanceRequest) -> Unit)? = null,
+    onSimulateAlertNow: ((AssistanceRequest) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     var selectedPassengerType by remember { mutableStateOf(initialPassengerType) }
@@ -102,6 +108,7 @@ fun CreateRequestScreen(
     var notes by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isSubmitting by remember { mutableStateOf(false) }
+    var deliveredRequest by remember { mutableStateOf<AssistanceRequest?>(null) }
 
     // Destination station list excluding source station
     val eligibleDestinations = remember(allStations, sourceStationName) {
@@ -650,7 +657,7 @@ fun CreateRequestScreen(
                         notes
                     ) { createdRequest ->
                         isSubmitting = false
-                        onRequestCreated(createdRequest)
+                        deliveredRequest = createdRequest
                     }
                 },
                 enabled = !isSubmitting,
@@ -781,6 +788,186 @@ fun CreateRequestScreen(
                             }
                             Spacer(modifier = Modifier.height(4.dp))
                         }
+                    }
+                }
+            }
+        }
+    }
+
+    // Request Dispatched & Delivered Confirmation Modal
+    deliveredRequest?.let { req ->
+        Dialog(onDismissRequest = { /* Staff decision required */ }) {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
+                shape = RoundedCornerShape(20.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(2.dp, Color(0xFF16A34A), RoundedCornerShape(20.dp))
+                    .testTag("delivery_confirmation_dialog")
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(56.dp)
+                            .background(Color(0xFF16A34A).copy(alpha = 0.2f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CheckCircle,
+                            contentDescription = "Delivered",
+                            tint = Color(0xFF22C55E),
+                            modifier = Modifier.size(36.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Text(
+                        text = "REQUEST DISPATCHED & DELIVERED",
+                        color = Color.White,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 0.5.sp
+                    )
+
+                    Surface(
+                        color = Color(0xFF22C55E).copy(alpha = 0.15f),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.padding(top = 6.dp)
+                    ) {
+                        Text(
+                            text = "DELIVERY CONFIRMED TO DESTINATION TERMINAL",
+                            color = Color(0xFF4ADE80),
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Request receipt details card
+                    Surface(
+                        color = Color(0xFF1E293B),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(14.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("REQUEST ID", color = Color.Gray, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                Text(req.requestId, color = PinkLinePrimary, fontSize = 12.sp, fontWeight = FontWeight.Black)
+                            }
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("DESTINATION", color = Color.Gray, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                Text(req.destinationStation, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            }
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("TRAIN / DIRECTION", color = Color.Gray, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                Text("Train Set ${req.trainId} • ${req.direction.shortLabel}", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                            }
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("PASSENGER", color = Color.Gray, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                Text("${req.passengerCount} ${req.passengerType.displayName}", color = Color(0xFFFBBF24), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            }
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("ESTIMATED ARRIVAL", color = Color.Gray, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                Text("~${journeyCalculation.second.toInt()} mins (${journeyCalculation.first} stations away)", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(18.dp))
+
+                    // Option 1: Switch Station to Destination to View Alert & Acknowledge
+                    if (onSwitchToDestinationAndAcknowledge != null) {
+                        Button(
+                            onClick = {
+                                deliveredRequest = null
+                                onSwitchToDestinationAndAcknowledge(req)
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = PinkLinePrimary,
+                                contentColor = Color.White
+                            ),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(50.dp)
+                                .testTag("delivery_switch_station_button")
+                        ) {
+                            Icon(Icons.Default.SwapHoriz, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Switch to ${req.destinationStation} & Acknowledge",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+
+                    // Option 2: Test Destination Alert on this Device Now
+                    if (onSimulateAlertNow != null) {
+                        OutlinedButton(
+                            onClick = {
+                                deliveredRequest = null
+                                onSimulateAlertNow(req)
+                            },
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFFBBF24)),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(46.dp)
+                                .testTag("delivery_simulate_alert_button")
+                        ) {
+                            Icon(Icons.Default.NotificationsActive, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Simulate Alert Overlay on this Device", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+
+                    // Option 3: Continue to Active Requests
+                    Button(
+                        onClick = {
+                            deliveredRequest = null
+                            onRequestCreated(req)
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF334155),
+                            contentColor = Color.White
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(46.dp)
+                            .testTag("delivery_done_button")
+                    ) {
+                        Text("View in Active Requests List", fontSize = 13.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }

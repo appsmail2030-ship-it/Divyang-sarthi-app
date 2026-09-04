@@ -213,9 +213,44 @@ class PinkLineViewModel(
             _currentStation.value = stationName
             _isLoggedIn.value = true
             _isAdminLoggedIn.value = (password == config.adminPassword)
+            checkPendingAlertsForStation(stationName)
             return true
         }
         return false
+    }
+
+    // Quick Station Switcher for multi-station simulation and coordination
+    fun switchStation(newStationName: String) {
+        _currentStation.value = newStationName
+        checkPendingAlertsForStation(newStationName)
+    }
+
+    // Check if there are any unacknowledged incoming requests for this station
+    fun checkPendingAlertsForStation(stationName: String) {
+        val pendingReq = allRequests.value.find {
+            it.destinationStation.equals(stationName, ignoreCase = true) &&
+                    it.status == AssistanceStatus.REQUEST_SENT
+        }
+        if (pendingReq != null && _incomingAlert.value == null) {
+            _incomingAlert.value = pendingReq
+            alertSoundManager.playSiren()
+            notificationHelper.showAssistanceAlertNotification(
+                pendingReq,
+                title = "🚨 INCOMING PASSENGER ASSISTANCE REQUEST",
+                message = "Train Set ${pendingReq.trainId} approaching ${pendingReq.destinationStation} Platform - Acknowledgment required"
+            )
+        }
+    }
+
+    // Manually trigger destination alert overlay for demonstration or delivery testing
+    fun triggerIncomingAlert(request: AssistanceRequest) {
+        _incomingAlert.value = request
+        alertSoundManager.playSiren()
+        notificationHelper.showAssistanceAlertNotification(
+            request,
+            title = "🚨 INCOMING PASSENGER ASSISTANCE REQUEST",
+            message = "Train Set ${request.trainId} approaching ${request.destinationStation} Platform - Acknowledgment required"
+        )
     }
 
     fun loginAdmin(password: String): Boolean {
